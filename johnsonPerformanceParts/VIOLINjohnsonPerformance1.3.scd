@@ -1,3 +1,8 @@
+/*
+for violin and cello
+-john eagle
+SC: 3.11.2, last update: 4.25.21
+*/
 // set and boot server
 (
 o = Server.default.options;
@@ -10,7 +15,7 @@ s.quit; // to manually stop server
 ////////////////// MAIN PROGRAM //////////////////////////////////////////////////////
 (
 // command-enter here
-// vars that can be configured: line 14 for instrument, 49 for keycodes
+// vars that can be configured: line 19 for instrument, 54 for keycodes
 var instrument = "VIOLIN"; // set string here to "VIOLIN" or "CELLO"
 var title = "Johnson Museum Score" + instrument;
 // constants for VISUAL
