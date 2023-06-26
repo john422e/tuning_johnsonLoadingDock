@@ -21,8 +21,8 @@ o.numWireBufs_(1024);
 s.options.outDevice_(
 	//"BlackHole 64ch"
 	//"External Headphones"
-	//"MacBook Pro Speakers"
-	"Scarlett 18i20 USB"
+	"MacBook Pro Speakers"
+	//"Scarlett 18i20 USB"
 );
 
 s.boot;
@@ -66,8 +66,10 @@ var facing=0, position_i, positions;
 var audioPath, audioFileNames, bufs, bufPlayers, synth1, synth2, synth3;
 var pans; // for dev only
 var rampTime=0.1; // attack and release for all envs
+var masterGain = 1;
+var channels = "mono"; // "mono", change to "stereo" to duplicate channel
 // HID STUFF ------------------------------------------
-var leftKey=123, rightKey=124, xKey=7, oKey=31, pedalLeft=126, pedalRight=125;
+var leftKey=123, rightKey=124, xKey=7, oKey=31, pedalLeft=126, pedalRight=125, spacebar=49;
 
 // FILE HANDLING ----------------------------------------------------------------------------------
 // read in csv file with instrument freqs for notation, WILL NEED TO EXPAND FOR DEPTHS
@@ -338,7 +340,7 @@ SynthDef.new(\sinBank8, {
 	//sig = BHiShelf.ar(sig, 450, 1.0, -6);
 	// ----------------------------------------------------
 	sig = Mix.ar( sig ); // mix down to 1 channels
-	sig = Pan2.ar(sig); //  now to 2 channels? need to see what studio setup will be
+	if( channels == "stereo", {sig = Pan2.ar(sig)}); //  now to 2 channels? need to see what studio setup will be
 	sig = sig * env * amp;
 	Out.ar(out, sig);
 }).add;
@@ -357,7 +359,7 @@ SynthDef.new(\sinBank64, {
 	//sig = BHiShelf.ar(sig, 450, 1.0, -6);
 	// ----------------------------------------------------
 	sig = Mix.ar( sig ); // mix down to 1 channels
-	sig = Pan2.ar(sig); //  now to 2 channels? need to see what studio setup will be
+	if( channels == "stereo", {sig = Pan2.ar(sig)}); //  now to 2 channels? need to see what studio setup will be
 	sig = sig * env * amp;
 	Out.ar(out, sig);
 }).add;
@@ -376,7 +378,7 @@ SynthDef.new(\sinBank512, {
 	//sig = BHiShelf.ar(sig, 450, 1.0, -6);
 	// ----------------------------------------------------
 	sig = Mix.ar( sig ); // mix down to 1 channels
-	sig = Pan2.ar(sig); //  now to 2 channels? need to see what studio setup will be
+	if( channels == "stereo", {sig = Pan2.ar(sig)}); //  now to 2 channels? need to see what studio setup will be
 	sig = sig * env * amp;
 	Out.ar(out, sig);
 }).add;
@@ -398,7 +400,7 @@ SynthDef.new(\bufPlay, {
 		da
 		);
 	sig = sig * amp * env;
-	sig = Pan2.ar(sig, pan);
+	if( channels == "stereo", {sig = Pan2.ar(sig, pan)});
 	Out.ar(out, sig);
 }).add;
 
@@ -446,6 +448,34 @@ w.view.keyDownAction = {
 	arg view, char, modifiers, unicode, keycode;
 	//[char, modifiers, unicode, keycode].postln;
 	keycode.postln;
+	if( keycode == spacebar, { // spacebar
+		"SPACE".postln;
+
+		if( masterGain == 1, {
+			// turn off current synth or buffer
+			switch ( depths[facing],
+				0, { synth1.set(\gate, 0) }, // turn off sinBank8
+				1, { synth2.set(\gate, 0) }, // turn off sinBank64
+				2, { synth3.set(\gate, 0) }, // turn off sinBank512
+				3, { bufPlayers[facing].set(\gate, 0 ) } // turn off buffer
+			);
+		});
+
+		if( masterGain == -1, {
+			// turn on current synth or buffer
+			switch ( depths[facing],
+			0, { fork{ rampTime.wait; synth1.setn(\freqs1, depth1Data[facing][0], depth1Data[facing][1]); synth1.set(\gate, 1)}; }, // set and turn on sinBank8
+			1, { fork{ rampTime.wait; synth2.setn(\freqs2, depth2Data[facing][0], depth2Data[facing][1]); synth2.set(\gate, 1)}; }, // set and turn on sinBank64
+			2, { fork{ rampTime.wait; synth3.setn(\freqs3, depth3Data[facing][0], depth3Data[facing][1]); synth3.set(\gate, 1)}; }, // set and turn on sinBank512
+			3, { fork{ 0.001.wait; bufPlayers[facing].set(\gate, 1)}; } // turn on new buffer
+		);
+		});
+
+		masterGain = masterGain * -1; // flip gain value to -1 or 1
+		["CURRENT GAIN:", masterGain].postln;
+
+	});
+
 	if( (keycode == leftKey or:{ keycode == pedalLeft}), {
 		"LEFT".postln;
 		// turn off current synth or buffer
